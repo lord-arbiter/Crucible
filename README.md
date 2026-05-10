@@ -5,7 +5,9 @@
 [Live Space](https://huggingface.co/spaces/) ·
 [Demo Video](#) ·
 [Architecture](docs/architecture.md) ·
-[Runbook](docs/RUNBOOK.md)
+[Runbook](docs/RUNBOOK.md) ·
+[GPU access](docs/GPU_ACCESS.md) ·
+[Test plan](TESTING.md)
 
 > Built solo for the **AMD Developer Hackathon 2026** (lablab.ai).
 > Track: AI Agents & Agentic Workflows.
