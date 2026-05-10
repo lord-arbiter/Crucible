@@ -1,0 +1,74 @@
+# Crucible GPU box — NVIDIA / CUDA / vLLM serving Qwen3-VL + FastAPI orchestrator
+#
+# Build:
+#   docker build -f docker/Dockerfile.cuda -t crucible:cuda .
+#
+# Run on AWS EC2 g6e.xlarge (L40S 48 GB), p4d (A100 40 GB), p5 (H100 80 GB),
+# RunPod, Lambda, etc. See docs/recipes/aws-ec2.md.
+#
+# Default model is Qwen3-VL-8B-Instruct, which fits comfortably on a single
+# 48 GB GPU at fp16 with 32k context. For 32B-Instruct on a 80 GB GPU set
+# CRUCIBLE_VLM_MODEL=Qwen/Qwen3-VL-32B-Instruct and VLLM_MAX_LEN=65536.
+ARG BASE=vllm/vllm-openai:latest
+FROM ${BASE}
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    \
+    # vLLM V1 path with CUDA graphs enabled.
+    VLLM_USE_V1=1 \
+    \
+    # HuggingFace download accelerator.
+    HF_HUB_ENABLE_HF_TRANSFER=1 \
+    \
+    # Crucible orchestrator config (overridable at run time).
+    CRUCIBLE_VLM_ENDPOINT=http://localhost:8001/v1 \
+    CRUCIBLE_VLM_MODEL=Qwen/Qwen3-VL-8B-Instruct \
+    CRUCIBLE_VLM_SERVED_NAME=crucible-vlm \
+    CRUCIBLE_API_HOST=0.0.0.0 \
+    CRUCIBLE_API_PORT=8000
+
+WORKDIR /workspace/crucible
+
+# System packages: AV1 decoders for LeRobot v3 video, plus init/tooling.
+# The upstream vllm/vllm-openai image is Ubuntu-based so apt-get works.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ffmpeg \
+        libavcodec-extra \
+        libdav1d-dev \
+        libaom-dev \
+        git \
+        curl \
+        ca-certificates \
+        tini \
+    && rm -rf /var/lib/apt/lists/*
+
+# Pin transformers >= 4.57 (Qwen3-VL native support — older transformers
+# silently load the model as Qwen2.5-VL and produce garbage). Add xgrammar
+# so the json_schema response_format works for guided decoding.
+RUN pip install --no-cache-dir --upgrade \
+        "transformers>=4.57.0" \
+        "xgrammar>=0.1.18" \
+        "openai>=1.50" \
+        "huggingface_hub[hf_transfer]>=0.26" \
+        "datasets>=3.1" \
+        "pyarrow>=15" \
+        "pandas>=2.2" \
+        "pillow>=10.4" \
+        "av>=12.3" \
+        "fastapi>=0.115" \
+        "uvicorn[standard]>=0.30" \
+        "sse-starlette>=2.1" \
+        "pydantic>=2.8" \
+        "tenacity>=9.0"
+
+COPY src/ ./src/
+COPY scripts/ ./scripts/
+COPY data/ ./data/
+
+EXPOSE 8000 8001
+
+COPY docker/entrypoint.cuda.sh /entrypoint.cuda.sh
+RUN chmod +x /entrypoint.cuda.sh
+ENTRYPOINT ["tini", "--", "/entrypoint.cuda.sh"]

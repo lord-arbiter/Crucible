@@ -1,3 +1,18 @@
+"""Runtime configuration for Crucible.
+
+Every knob is overridable via a ``CRUCIBLE_*`` environment variable. Common
+backend configurations:
+
+| Backend | CRUCIBLE_VLM_ENDPOINT | CRUCIBLE_VLM_MODEL | CRUCIBLE_VLM_API_KEY |
+|---|---|---|---|
+| Self-hosted vLLM (local Docker) | ``http://localhost:8001/v1`` | ``crucible-vlm`` | ``EMPTY`` |
+| Hyperbolic | ``https://api.hyperbolic.xyz/v1`` | ``Qwen/Qwen3-VL-72B-Instruct`` | ``<key>`` |
+| Together AI | ``https://api.together.xyz/v1`` | ``Qwen/Qwen3-VL-32B-Instruct`` | ``<key>`` |
+| DashScope (Alibaba intl) | ``https://dashscope-intl.aliyuncs.com/compatible-mode/v1`` | ``qwen3-vl-plus`` | ``<key>`` |
+| Local Mac MLX | ``http://localhost:8001/v1`` | ``mlx-community/Qwen3-VL-2B-Instruct-4bit`` | ``EMPTY`` |
+
+See ``docs/recipes/`` for end-to-end setup per backend.
+"""
 from __future__ import annotations
 
 import os
