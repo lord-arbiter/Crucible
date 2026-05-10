@@ -1,0 +1,28 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.env
+.env.local
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.DS_Store
+*.swp
+node_modules/
+
+# Cached datasets and HF downloads
+.cache/
+hf_cache/
+
+# Cached job artifacts (keep curated demo precaches under data/precached)
+data/jobs/
+data/tmp/
+*.parquet.tmp
+
+# Notebooks scratch
+.ipynb_checkpoints/
