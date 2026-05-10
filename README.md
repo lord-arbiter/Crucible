@@ -94,14 +94,23 @@ Want a model not listed? Open an [issue](https://github.com/lord-arbiter/Crucibl
 
 ## Self-host on a GPU box
 
-Crucible ships Docker images for both NVIDIA (CUDA) and AMD (ROCm) GPUs. Concrete recipes for the most common deployment targets:
+Crucible ships Docker images for both NVIDIA (CUDA) and AMD (ROCm) GPUs. The same `docker run` works on any cloud — concrete recipes for the most common providers:
 
-- [AWS EC2 g6e.xlarge — L40S 48 GB, $1.86/hr](docs/recipes/aws-ec2.md) — recommended NVIDIA path, runs Qwen3-VL-8B / Llama-3.2-Vision-11B comfortably.
-- [AWS SageMaker JumpStart](docs/recipes/aws-sagemaker.md) — managed alternative.
-- [AMD MI300X / Developer Cloud](docs/recipes/amd-mi300x.md) — full-precision 32B/72B-class models at 65k context.
-- [Local Mac (MLX)](docs/recipes/local-mac.md) — laptop development path.
+| Provider | Recipe |
+|---|---|
+| AWS EC2 | [aws-ec2.md](docs/recipes/aws-ec2.md) |
+| AWS SageMaker JumpStart | [aws-sagemaker.md](docs/recipes/aws-sagemaker.md) |
+| Azure VM | [azure-vm.md](docs/recipes/azure-vm.md) |
+| Google Cloud Compute Engine | [gcp-compute-engine.md](docs/recipes/gcp-compute-engine.md) |
+| DigitalOcean | [digitalocean-gpu.md](docs/recipes/digitalocean-gpu.md) |
+| Lambda Labs | [lambda-labs.md](docs/recipes/lambda-labs.md) |
+| RunPod (NVIDIA) | [runpod-nvidia.md](docs/recipes/runpod-nvidia.md) |
+| Vast.ai | [vast-ai.md](docs/recipes/vast-ai.md) |
+| AMD MI300X (Hot Aisle / RunPod / AMD Cloud) | [amd-mi300x.md](docs/recipes/amd-mi300x.md) |
+| Local Mac (MLX) | [local-mac.md](docs/recipes/local-mac.md) |
+| **Other cloud / bare metal NVIDIA** | [Universal cloud-gpu-vm recipe](docs/recipes/cloud-gpu-vm.md) |
 
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full deployment guide and a 9-symptom troubleshooting table.
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full deployment guide and a troubleshooting table.
 
 ## How it works
 

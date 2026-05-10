@@ -17,6 +17,13 @@ uses [Semantic Versioning](https://semver.org/).
 - New recipes for non-Qwen backends: `docs/recipes/openai-gpt4o.md`,
   `docs/recipes/anthropic-claude.md` (via LiteLLM proxy),
   `docs/recipes/google-gemini.md`.
+- Cloud-agnostic self-hosting recipes for every major NVIDIA GPU
+  provider: `docs/recipes/azure-vm.md`,
+  `docs/recipes/gcp-compute-engine.md`,
+  `docs/recipes/digitalocean-gpu.md`, `docs/recipes/lambda-labs.md`,
+  `docs/recipes/runpod-nvidia.md`, `docs/recipes/vast-ai.md`.
+- `docs/recipes/cloud-gpu-vm.md` — universal "any cloud GPU VM" recipe
+  with bare-Ubuntu fallback and per-cloud troubleshooting table.
 - Multi-backend deployment recipes under `docs/recipes/` (AWS EC2, AWS
   SageMaker, AMD MI300X, Hyperbolic, Together AI, DashScope, local Mac).
 - `docker/Dockerfile.cuda` for NVIDIA GPUs (A10G, L40S, H100, A100).

@@ -24,17 +24,29 @@ When to pick a hosted API:
 
 ## Self-hosted on cloud GPU
 
-| Cloud | Instance | GPU | Best Qwen3-VL | $/hr | Recipe |
+| Cloud | Instance | GPU | Best fit | $/hr | Recipe |
 |---|---|---|---|---|---|
-| AWS EC2 | `g6e.xlarge` | 1× L40S 48 GB | 8B fp16 | $1.86 | [aws-ec2.md](recipes/aws-ec2.md) |
-| AWS EC2 | `g6e.12xlarge` | 4× L40S 48 GB | 32B tensor-parallel | $10.49 | (planned) |
-| AWS EC2 | `p5.48xlarge` | 8× H100 80 GB | 32B / 72B | $98.32 | (overkill for v0.1) |
-| AWS SageMaker | JumpStart Qwen3-VL endpoint | varies | varies | varies | [aws-sagemaker.md](recipes/aws-sagemaker.md) |
-| AMD Cloud | MI300X | 1× MI300X 192 GB | 32B fp16, 65k context | free $100 credit / pay-as-you-go | [amd-mi300x.md](recipes/amd-mi300x.md) |
-| RunPod community | MI300X | 1× MI300X | 32B fp16 | $0.50 | [amd-mi300x.md](recipes/amd-mi300x.md) |
-| RunPod community | H100 PCIe 80 GB | 1× H100 | 32B fp16 (tight) | $1.99 | adapt aws-ec2.md |
-| Hot Aisle | MI300X 1×/2×/4×/8× | MI300X | 32B / 72B | $1.99 | [amd-mi300x.md](recipes/amd-mi300x.md) |
-| Lambda | H100 80 GB SXM | 1× H100 | 32B fp16 | $2.99 | adapt aws-ec2.md |
+| AWS EC2 | `g6e.xlarge` | 1× L40S 48 GB | Qwen3-VL-8B | $1.86 | [aws-ec2.md](recipes/aws-ec2.md) |
+| AWS EC2 | `p4de.24xlarge` | 8× A100 80 GB | 32B / 72B TP | $40.96 | adapt [cloud-gpu-vm.md](recipes/cloud-gpu-vm.md) |
+| AWS EC2 | `p5.48xlarge` | 8× H100 80 GB | 32B / 72B / 235B | $98.32 | adapt [cloud-gpu-vm.md](recipes/cloud-gpu-vm.md) |
+| AWS SageMaker | JumpStart endpoint | varies | varies | varies | [aws-sagemaker.md](recipes/aws-sagemaker.md) |
+| Azure | `Standard_NC24ads_A100_v4` | 1× A100 80 GB | 32B fp16 | ~$3.67 | [azure-vm.md](recipes/azure-vm.md) |
+| Azure | `Standard_NCads_H100_v5` | 1× H100 NVL | 32B / 72B | ~$6.98 | [azure-vm.md](recipes/azure-vm.md) |
+| GCP | `g2-standard-4` | 1× L4 24 GB | Qwen3-VL-8B | ~$0.69 | [gcp-compute-engine.md](recipes/gcp-compute-engine.md) |
+| GCP | `a2-ultragpu-1g` | 1× A100 80 GB | 32B fp16 | ~$5.07 | [gcp-compute-engine.md](recipes/gcp-compute-engine.md) |
+| GCP | `a3-highgpu-1g` | 1× H100 80 GB | 32B / 72B | ~$10.83 | [gcp-compute-engine.md](recipes/gcp-compute-engine.md) |
+| DigitalOcean | `gpu-h100x1-80gb` | 1× H100 80 GB | 32B fp16 | ~$4.89 | [digitalocean-gpu.md](recipes/digitalocean-gpu.md) |
+| DigitalOcean | `gpu-h100x8-640gb` | 8× H100 SXM | 72B / 235B | ~$39.12 | [digitalocean-gpu.md](recipes/digitalocean-gpu.md) |
+| Lambda Labs | A100 SXM | 1× A100 80 GB | 32B fp16 | ~$1.79 | [lambda-labs.md](recipes/lambda-labs.md) |
+| Lambda Labs | H100 SXM | 1× H100 80 GB | 32B / 72B | ~$3.49 | [lambda-labs.md](recipes/lambda-labs.md) |
+| RunPod community | L40 48 GB | 1× L40 | Qwen3-VL-8B | ~$0.79 | [runpod-nvidia.md](recipes/runpod-nvidia.md) |
+| RunPod community | A100 PCIe 80 GB | 1× A100 | 32B fp16 | ~$1.89 | [runpod-nvidia.md](recipes/runpod-nvidia.md) |
+| RunPod community | H100 PCIe 80 GB | 1× H100 | 32B / 72B | ~$1.99 | [runpod-nvidia.md](recipes/runpod-nvidia.md) |
+| RunPod community | MI300X 192 GB | 1× MI300X | 32B at 65k context | ~$0.50 | [amd-mi300x.md](recipes/amd-mi300x.md) |
+| Hot Aisle | MI300X 1× / 2× / 4× / 8× | MI300X | 32B / 72B / 235B | ~$1.99 | [amd-mi300x.md](recipes/amd-mi300x.md) |
+| Vast.ai | RTX 4090 24 GB | 1× 4090 | Qwen3-VL-8B | $0.18-0.50 | [vast-ai.md](recipes/vast-ai.md) |
+| Vast.ai | H100 80 GB | 1× H100 | 32B / 72B | $1.50-2.80 | [vast-ai.md](recipes/vast-ai.md) |
+| AMD Developer Cloud | MI300X | 1× MI300X 192 GB | 32B at 65k context | free $100 credit / $1.99 | [amd-mi300x.md](recipes/amd-mi300x.md) |
 
 When to pick self-hosted:
 
