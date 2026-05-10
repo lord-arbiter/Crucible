@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question — how do I do X?
+    url: https://github.com/lord-arbiter/Crucible/discussions
+    about: Use Discussions for setup questions and "how do I" topics. Issues are for bugs and feature requests.
+  - name: Security vulnerability
+    url: https://github.com/lord-arbiter/Crucible/security/advisories/new
+    about: Please report security issues privately, not in public issues. See SECURITY.md.
+  - name: Documentation gap
+    url: https://github.com/lord-arbiter/Crucible/issues/new?template=feature_request.md&title=%5Bdocs%5D+
+    about: Use the feature-request template with a [docs] prefix for documentation gaps.
