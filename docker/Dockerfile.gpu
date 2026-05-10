@@ -1,0 +1,58 @@
+# Crucible GPU box — MI300X / ROCm 7.2 / vLLM + FastAPI orchestrator
+#
+# Build from the AMD-published ROCm vLLM base image. If that tag drifts,
+# substitute the latest from https://hub.docker.com/r/rocm/vllm/tags
+ARG BASE=rocm/vllm:rocm7.2_ubuntu22.04_vllm
+FROM ${BASE}
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    HSA_FORCE_FINE_GRAIN_PCIE=1 \
+    HIP_VISIBLE_DEVICES=0 \
+    HF_HUB_ENABLE_HF_TRANSFER=1 \
+    CRUCIBLE_VLM_ENDPOINT=http://localhost:8001/v1 \
+    CRUCIBLE_VLM_MODEL=Qwen/Qwen3-VL-32B-Instruct \
+    CRUCIBLE_API_HOST=0.0.0.0 \
+    CRUCIBLE_API_PORT=8000
+
+WORKDIR /workspace/crucible
+
+# System packages for video decoding + git for any from-source installs
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ffmpeg \
+        libavcodec-extra \
+        git \
+        curl \
+        ca-certificates \
+        tini \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python deps (ROCm vLLM image already has torch + vllm)
+COPY pyproject.toml ./
+RUN pip install --no-cache-dir \
+        "openai>=1.50" \
+        "transformers>=4.46" \
+        "huggingface_hub[hf_transfer]>=0.26" \
+        "datasets>=3.1" \
+        "pyarrow>=15" \
+        "pandas>=2.2" \
+        "numpy>=1.26" \
+        "pillow>=10.4" \
+        "av>=12.3" \
+        "fastapi>=0.115" \
+        "uvicorn[standard]>=0.30" \
+        "sse-starlette>=2.1" \
+        "pydantic>=2.8" \
+        "tenacity>=9.0"
+
+COPY src/ ./src/
+COPY scripts/ ./scripts/
+COPY data/ ./data/
+
+EXPOSE 8000 8001
+
+# vLLM in the background, FastAPI in the foreground; tini reaps zombies.
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["tini", "--", "/entrypoint.sh"]
