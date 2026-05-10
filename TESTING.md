@@ -1,31 +1,46 @@
 # Crucible — Layered Test Plan
 
-Walk top-to-bottom the moment GPU credits land. Green at every layer = demo safe. Total ~25 min. All commands assume `cd ~/Crucible && source .venv/bin/activate`.
+Walk top-to-bottom the moment your endpoint is up. Green at every layer = demo safe. Total ~25 min. All commands assume `cd ~/Crucible && source .venv/bin/activate`.
 
-> **Need a GPU first?** See `docs/GPU_ACCESS.md` for the AMD Dev Cloud sign-up flow + paid fallbacks (RunPod MI300X $0.50/hr, RunPod H100 $1.99/hr).
+> **Need a backend first?** See [docs/COMPUTE_OPTIONS.md](docs/COMPUTE_OPTIONS.md) for the full survey (hosted APIs, AWS, AMD, local) and [docs/recipes/](docs/recipes/) for per-backend setup.
+
+This plan works against any OpenAI-compatible Qwen3-VL endpoint. Where commands assume self-hosted (e.g. `nvidia-smi` / `rocm-smi`), skip them when using a hosted API.
 
 ---
 
-## Layer -1 — GPU box health (run once, on first SSH)
+## Layer -1 — Endpoint health (run once, after starting the backend)
 
-**Time: 30 sec.** Confirm the box is real before sinking model-download time.
+**Time: 30 sec.** Confirm the endpoint exists and the model is loaded.
+
+For **self-hosted vLLM** (NVIDIA or AMD):
 
 ```bash
-rocm-smi --showproductname           # one line per GPU; expect "MI300X" or similar
+# NVIDIA box
+nvidia-smi
+# Expected: your GPU listed, VRAM reporting correctly, driver 550+
+
+# AMD box
+rocm-smi --showproductname           # MI300X line
 rocm-smi --showmeminfo vram          # Total VRAM ≈ 196,592 MB on MI300X
 rocm-smi --showtemp --showpower      # idle temp <60°C, idle power <100W
-rocm-smi --showbus                   # PCIe Gen5 x16 at 32 GT/s
-rocminfo | grep -E "gfx|MI300|Marketing Name" | head -5
 ```
 
-**Pass:** product name says MI300X (or H100 if on the fallback path), VRAM reports the full HBM, no `[!]` warnings.
+For **any backend** (hosted or self-hosted):
+
+```bash
+curl -s ${CRUCIBLE_VLM_ENDPOINT}/models -H "Authorization: Bearer ${CRUCIBLE_VLM_API_KEY}" \
+  | python3 -m json.tool | head -20
+# Expect: {"data": [{"id": "<your model>", ...}]}
+```
+
+**Pass:** GPU details look right (self-hosted) AND `/v1/models` returns the served model id.
 
 Live monitor (run in a tmux pane while testing):
 ```bash
-watch -n 1 'rocm-smi --showuse --showmemuse --showtemp --showpower | head -20'
+watch -n 1 'nvidia-smi || rocm-smi --showuse --showmemuse --showtemp --showpower | head -20'
 ```
 
-**Most-likely failure:** `rocm-smi: command not found`. **Fix:** the base image isn't AMD's vLLM image — `apt list --installed | grep rocm` and re-pull `rocm/vllm-dev:nightly_main_*` or `vllm/vllm-openai-rocm:latest`.
+**Most-likely failure:** `connection refused` on `/models`. **Fix:** check the endpoint URL is correct, the API key is set, and the backend is up (`docker ps` for self-hosted; provider dashboard for hosted).
 
 ---
 
@@ -45,24 +60,37 @@ python scripts/io_smoke.py --repo lerobot/aloha_static_cups_open --episodes 2 --
 
 ---
 
-## Layer 1 — vLLM endpoint health
+## Layer 1 — Endpoint API check
 
 **Time: 1 min**
 
 ```bash
-curl -s http://localhost:8001/v1/models | python3 -m json.tool          # data[0].id == Qwen/Qwen3-VL-32B-Instruct
+# 1. Models endpoint
+curl -s "${CRUCIBLE_VLM_ENDPOINT}/models" \
+  -H "Authorization: Bearer ${CRUCIBLE_VLM_API_KEY}" \
+  | python3 -m json.tool                                                # data[0].id == your model
+
+# 2. (Self-hosted only) Crucible orchestrator healthz
 curl -s http://localhost:8000/healthz                                   # {"ok": true, "default_model": "..."}
-curl -s http://localhost:8001/v1/chat/completions -H 'Content-Type: application/json' \
-  -d '{"model":"Qwen/Qwen3-VL-32B-Instruct","messages":[{"role":"user","content":"reply OK"}],"max_tokens":4,"temperature":0}'
+
+# 3. Minimal text chat completion
+curl -s "${CRUCIBLE_VLM_ENDPOINT}/chat/completions" \
+  -H "Authorization: Bearer ${CRUCIBLE_VLM_API_KEY}" \
+  -H 'Content-Type: application/json' \
+  -d "{\"model\":\"${CRUCIBLE_VLM_MODEL}\",\"messages\":[{\"role\":\"user\",\"content\":\"reply OK\"}],\"max_tokens\":4,\"temperature\":0}"
 # choices[0].message.content == "OK"
-curl -s http://localhost:8001/v1/chat/completions -H 'Content-Type: application/json' \
-  -d '{"model":"Qwen/Qwen3-VL-32B-Instruct","messages":[{"role":"user","content":"emit {\"x\":1}"}],"max_tokens":16,"temperature":0,"response_format":{"type":"json_schema","json_schema":{"name":"t","schema":{"type":"object","properties":{"x":{"type":"integer"}},"required":["x"]},"strict":true}}}'
-# parses to {"x": 1} → confirms xgrammar
+
+# 4. JSON schema response format (graceful failure is OK — Crucible falls back)
+curl -s "${CRUCIBLE_VLM_ENDPOINT}/chat/completions" \
+  -H "Authorization: Bearer ${CRUCIBLE_VLM_API_KEY}" \
+  -H 'Content-Type: application/json' \
+  -d "{\"model\":\"${CRUCIBLE_VLM_MODEL}\",\"messages\":[{\"role\":\"user\",\"content\":\"emit {\\\"x\\\":1}\"}],\"max_tokens\":16,\"temperature\":0,\"response_format\":{\"type\":\"json_schema\",\"json_schema\":{\"name\":\"t\",\"schema\":{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"integer\"}},\"required\":[\"x\"]},\"strict\":true}}}"
+# parses to {"x": 1} on providers that support json_schema; otherwise an HTTP error or json_object output
 ```
 
-**Pass:** all four return correct shapes; total <5s after warm-up.
+**Pass:** call 1 returns the model id, call 3 returns a non-empty completion. Calls 2 and 4 are nice-to-haves (call 2 only applies to self-hosted; call 4 only succeeds on json_schema-capable providers — Crucible falls back internally either way).
 
-**Most-likely failure:** `/v1/models` hangs. **Fix:** weights still downloading — tail `docker logs` and watch HF cache grow.
+**Most-likely failure:** `/v1/models` hangs (self-hosted) or returns HTTP 401 (hosted). **Fix:** for self-hosted, weights still downloading — tail `docker logs` and watch HF cache grow. For hosted, double-check the API key.
 
 ---
 
