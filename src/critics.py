@@ -1,4 +1,17 @@
-"""Five specialist VLM critics + invocation against an OpenAI-compatible vLLM endpoint."""
+"""Five specialist VLM critics + invocation against an OpenAI-compatible vLLM endpoint.
+
+Implementation notes:
+
+* JSON output uses ``response_format={"type": "json_schema", ...}`` driven by
+  vLLM's xgrammar guided-decoding backend. Plain ``{"type": "json_object"}``
+  has known reliability issues with Qwen3-VL (vLLM #18819) — emits stray
+  backticks and prose. We pick the schema route and fall back to json_object,
+  then to a regex JSON salvage path, on each failure tier.
+* User messages have ``/no_think`` appended so Qwen3 returns the answer
+  directly instead of producing a chain-of-thought before the JSON.
+* ``response_format`` is passed via ``extra_body`` for endpoints that don't
+  yet expose the SDK-level field.
+"""
 from __future__ import annotations
 
 import asyncio
@@ -9,6 +22,7 @@ import logging
 import re
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 from PIL import Image
 
@@ -24,6 +38,42 @@ logger = logging.getLogger(__name__)
 
 CRITIC_NAMES = ["visual", "kinematic", "task", "strategy", "safety"]
 PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
+NO_THINK_SUFFIX = "\n\nRespond with valid JSON ONLY, no commentary, no markdown fences. /no_think"
+
+CRITIC_VERDICT_VOCAB: dict[str, list[str]] = {
+    "visual": ["EXCELLENT", "ACCEPTABLE", "MARGINAL", "REJECT"],
+    "kinematic": ["SMOOTH", "ACCEPTABLE", "JERKY", "REJECT"],
+    "task": ["COMPLETE", "PARTIAL", "FAILED", "UNCLEAR"],
+    "strategy": ["EXEMPLARY", "GOOD", "MEDIOCRE", "POOR"],
+    "safety": ["SAFE", "MINOR_CONCERN", "MODERATE_CONCERN", "UNSAFE"],
+}
+
+
+def _critic_schema(name: str) -> dict[str, Any]:
+    """JSON schema enforced via xgrammar guided decoding for the named critic."""
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["score", "verdict", "rationale", "evidence"],
+        "properties": {
+            "score": {"type": "number", "minimum": 0, "maximum": 10},
+            "verdict": {"type": "string", "enum": CRITIC_VERDICT_VOCAB[name]},
+            "rationale": {"type": "string", "minLength": 1, "maxLength": 1200},
+            "evidence": {
+                "type": "array",
+                "maxItems": 8,
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["timestamp", "observation"],
+                    "properties": {
+                        "timestamp": {"type": "string"},
+                        "observation": {"type": "string", "maxLength": 240},
+                    },
+                },
+            },
+        },
+    }
 
 
 @lru_cache(maxsize=32)
@@ -54,11 +104,9 @@ def _frames_to_send(name: str, bundle: EpisodeBundle) -> tuple[list[Image.Image]
     if not frames:
         return [], []
     if name == "task":
-        # Heavily weight the final frames where success is judged.
         last = max(1, min(5, len(frames)))
         return frames[-last:], timestamps[-last:]
     if name == "kinematic":
-        # Just a few reference frames; the digest is the primary input.
         if len(frames) <= 5:
             return frames, timestamps
         idxs = [0, len(frames) // 4, len(frames) // 2, 3 * len(frames) // 4, len(frames) - 1]
@@ -74,7 +122,8 @@ def build_user_message(name: str, bundle: EpisodeBundle, cfg: CrucibleConfig) ->
         f"DURATION: {bundle.duration_s:.1f}s @ {bundle.fps}fps\n"
         f"PRIMARY CAMERA: {bundle.primary_camera or 'unknown'}\n\n"
         f"TELEMETRY DIGEST:\n{bundle.telemetry_digest}\n\n"
-        f"Frames sampled at timestamps (seconds): {[round(t, 2) for t in timestamps]}\n"
+        f"Frames sampled at timestamps (seconds): {[round(t, 2) for t in timestamps]}"
+        f"{NO_THINK_SUFFIX}"
     )
     content: list[dict] = [{"type": "text", "text": text_block}]
     for img in frames:
@@ -90,7 +139,6 @@ _JSON_BLOCK_RE = re.compile(r"\{.*\}", re.DOTALL)
 
 
 def _extract_json_loose(raw: str) -> dict:
-    """Recover what we can when a critic returns slightly malformed JSON."""
     if not raw:
         return _parse_error_payload("(empty model response)")
     match = _JSON_BLOCK_RE.search(raw)
@@ -111,6 +159,41 @@ def _parse_error_payload(raw: str) -> dict:
     }
 
 
+def _build_response_format(schema: dict[str, Any] | None, schema_name: str) -> dict[str, Any] | None:
+    if schema is None:
+        return None
+    return {
+        "type": "json_schema",
+        "json_schema": {"name": schema_name, "schema": schema, "strict": True},
+    }
+
+
+async def _chat_once(
+    client: AsyncOpenAI,
+    cfg: CrucibleConfig,
+    *,
+    system: str,
+    user_content: list[dict] | str,
+    max_tokens: int,
+    temperature: float,
+    response_format: dict[str, Any] | None,
+) -> str:
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user_content},
+    ]
+    kwargs: dict[str, Any] = {
+        "model": cfg.vlm_model,
+        "messages": messages,
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+    }
+    if response_format is not None:
+        kwargs["response_format"] = response_format
+    resp = await client.chat.completions.create(**kwargs)
+    return resp.choices[0].message.content or ""
+
+
 async def _chat_with_retries(
     client: AsyncOpenAI,
     cfg: CrucibleConfig,
@@ -119,27 +202,39 @@ async def _chat_with_retries(
     user_content: list[dict] | str,
     max_tokens: int,
     temperature: float,
+    schema: dict[str, Any] | None,
+    schema_name: str,
 ) -> str:
-    last_exc: Exception | None = None
-    messages = [
-        {"role": "system", "content": system},
-        {"role": "user", "content": user_content},
+    """Try json_schema first, then json_object, then unconstrained — with retries on each tier."""
+    response_format_tiers: list[dict[str, Any] | None] = [
+        _build_response_format(schema, schema_name),
+        {"type": "json_object"},
+        None,
     ]
-    for attempt in range(max(1, cfg.request_retries + 1)):
-        try:
-            resp = await client.chat.completions.create(
-                model=cfg.vlm_model,
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                response_format={"type": "json_object"},
-            )
-            return resp.choices[0].message.content or ""
-        except Exception as exc:
-            last_exc = exc
-            logger.warning("VLM call failed (attempt %d): %s", attempt + 1, exc)
-            await asyncio.sleep(0.5 * (attempt + 1))
-    raise RuntimeError(f"VLM call exhausted retries: {last_exc}")
+    last_exc: Exception | None = None
+    for tier_idx, fmt in enumerate(response_format_tiers):
+        for attempt in range(max(1, cfg.request_retries + 1)):
+            try:
+                return await _chat_once(
+                    client,
+                    cfg,
+                    system=system,
+                    user_content=user_content,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    response_format=fmt,
+                )
+            except Exception as exc:
+                last_exc = exc
+                logger.warning(
+                    "VLM call failed (tier %d attempt %d): %s",
+                    tier_idx, attempt + 1, exc,
+                )
+                # If json_schema isn't supported, fall through to json_object immediately.
+                if tier_idx == 0 and any(s in str(exc).lower() for s in ("schema", "response_format", "guided")):
+                    break
+                await asyncio.sleep(0.5 * (attempt + 1))
+    raise RuntimeError(f"VLM call exhausted all response-format tiers: {last_exc}")
 
 
 async def run_critic(
@@ -158,6 +253,8 @@ async def run_critic(
             user_content=user_content,
             max_tokens=cfg.critic_max_tokens,
             temperature=cfg.critic_temperature,
+            schema=_critic_schema(name),
+            schema_name=f"critic_{name}_verdict",
         )
     except Exception as exc:
         return {**_parse_error_payload(str(exc)), "verdict": "ERROR"}
@@ -178,6 +275,5 @@ async def run_all_critics(
         results = []
         for n in CRITIC_NAMES:
             results.append(await run_critic(n, bundle, cfg, client))
-    # Map storage keys to the verbose names used downstream.
     storage_keys = ["visual_quality", "kinematic_quality", "task_success", "strategy", "safety"]
     return dict(zip(storage_keys, results, strict=False))

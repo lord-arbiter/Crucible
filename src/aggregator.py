@@ -11,7 +11,7 @@ import logging
 from typing import Any
 
 from .config import CrucibleConfig
-from .critics import _extract_json_loose, load_aggregator_prompt
+from .critics import NO_THINK_SUFFIX, _chat_with_retries, _extract_json_loose, load_aggregator_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,18 @@ CRITIC_WEIGHTS: dict[str, float] = {
 
 REJECT_VERDICTS: set[str] = {"REJECT", "UNSAFE", "FAILED"}
 MINOR_CONCERN_VERDICTS: set[str] = {"MINOR_CONCERN"}
+
+AGGREGATOR_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["final_score", "verdict", "summary", "top_concern"],
+    "properties": {
+        "final_score": {"type": "number", "minimum": 0, "maximum": 10},
+        "verdict": {"type": "string", "enum": ["KEEP", "POLISH", "REJECT"]},
+        "summary": {"type": "string", "minLength": 1, "maxLength": 1500},
+        "top_concern": {"type": ["string", "null"], "maxLength": 400},
+    },
+}
 
 
 def _coerce_score(payload: Any) -> float:
@@ -95,19 +107,19 @@ async def aggregate(
         "Critic outputs:\n"
         f"{json.dumps(critic_results, indent=2, default=str)}\n\n"
         "Produce the final verdict JSON."
+        f"{NO_THINK_SUFFIX}"
     )
     try:
-        resp = await client.chat.completions.create(
-            model=cfg.vlm_model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user_text},
-            ],
+        raw = await _chat_with_retries(
+            client,
+            cfg,
+            system=system,
+            user_content=user_text,
             max_tokens=cfg.aggregator_max_tokens,
             temperature=cfg.aggregator_temperature,
-            response_format={"type": "json_object"},
+            schema=AGGREGATOR_SCHEMA,
+            schema_name="aggregator_verdict",
         )
-        raw = resp.choices[0].message.content or ""
     except Exception as exc:
         logger.warning("Aggregator LLM call failed, using fallback: %s", exc)
         return fallback_aggregate(critic_results)
