@@ -8,7 +8,7 @@
 [![Powered by Qwen3-VL](https://img.shields.io/badge/powered%20by-Qwen3--VL-9cf)](https://huggingface.co/Qwen)
 [![LeRobot v3](https://img.shields.io/badge/LeRobot-v3.0-orange)](https://huggingface.co/lerobot)
 
-[Live Demo](https://huggingface.co/spaces/) · [Docs](docs/) · [Recipes](docs/recipes/) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
+[Live Demo](https://huggingface.co/spaces/) · [Docs](docs/) · [Recipes](docs/recipes/) · [Test plan](docs/TESTING.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
 ---
 
@@ -108,7 +108,7 @@ Reliability features:
 - **LeRobot v3 native** — reads chunked parquet/video shards via the `meta/episodes/*.parquet` pointer columns and seeks PyAV to per-episode timestamps. v2 layouts also supported.
 - **Curation manifest** — pushed datasets carry a `crucible_curation` block in `info.json` listing kept episode indices and a documented `LeRobotDataset(repo, episodes=[...])` load instruction.
 
-Architecture deep-dive: [docs/architecture.md](docs/architecture.md). Build history: [docs/CODEBASE_MAP.md](docs/CODEBASE_MAP.md).
+Architecture deep-dive: [docs/architecture.md](docs/architecture.md).
 
 ## Configuration
 
@@ -155,6 +155,32 @@ For security issues see [SECURITY.md](SECURITY.md).
 - Qwen3-VL is the model that makes this practical at fp16 with native video understanding.
 - AMD/LMSYS published the MI300X-specific vLLM optimizations (rocJPEG, AITER + prefill-decode attention) we use in the AMD recipe.
 - `score_lerobot_episodes` (RoboticsData, Oct 2025) and AgiBot Genie Centurion are the closest prior art and the baselines we explicitly out-position with the multi-axis behavioral rubric.
+
+## Citation
+
+If you use Crucible in research or production, please cite it:
+
+```bibtex
+@software{crucible_2026,
+  author  = {Chakradhari},
+  title   = {Crucible: Multi-axis VLM-judged data curation for robot demonstrations},
+  year    = {2026},
+  url     = {https://github.com/lord-arbiter/Crucible},
+  version = {0.1.0}
+}
+```
+
+GitHub also reads [CITATION.cff](CITATION.cff) — click "Cite this repository" on the repo sidebar for an auto-generated APA / BibTeX block.
+
+## Contributors
+
+[![Contributors](https://contrib.rocks/image?repo=lord-arbiter/Crucible)](https://github.com/lord-arbiter/Crucible/graphs/contributors)
+
+PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the dev setup, design principles, and PR workflow.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=lord-arbiter/Crucible&type=Date)](https://star-history.com/#lord-arbiter/Crucible&Date)
 
 ## License
 

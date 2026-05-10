@@ -15,11 +15,27 @@ uses [Semantic Versioning](https://semver.org/).
 - PyPI publishing workflow at `.github/workflows/publish.yml`.
 - Issue + PR templates at `.github/`.
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `ROADMAP.md`, `SECURITY.md`.
+- `CITATION.cff` for academic citations via GitHub's "Cite this
+  repository" button.
 - Backend-agnostic `CRUCIBLE_VLM_API_KEY` and `extra_body` plumbing in
   `src/critics.py` for providers that need provider-specific request
   parameters.
 - Frontend now exposes VLM endpoint / model name / API key fields so the
   Space works against any user-supplied OpenAI-compatible endpoint.
+- README sections: Star History (api.star-history.com badge),
+  Contributors (contrib.rocks avatar grid), Citation (BibTeX block).
+
+### Changed
+- Repositioned from a one-off hackathon submission to an OSS project.
+  README rewritten to lead with product value rather than event framing.
+- `docs/RUNBOOK.md` renamed to `docs/DEPLOYMENT.md` and generalized to
+  point at per-backend recipes.
+- `docs/GPU_ACCESS.md` renamed to `docs/COMPUTE_OPTIONS.md` covering
+  hosted APIs, AWS, GCP, Azure, AMD Cloud, and local options.
+- `TESTING.md` moved to `docs/TESTING.md` (standard convention) and
+  made backend-agnostic.
+- `docs/architecture.md` generalized to "any OpenAI-compatible Qwen3-VL
+  endpoint" rather than MI300X-specific.
 
 ### Changed
 - Repositioned from a one-off hackathon submission to an OSS project.
@@ -36,6 +52,10 @@ uses [Semantic Versioning](https://semver.org/).
 - Hackathon-specific docs: `docs/SUBMISSION.md`, `docs/build_in_public.md`,
   `docs/demo_script.md`, `docs/pitch.md`, `eval/manual_check.md`.
   Provenance preserved in git history.
+- `docs/CODEBASE_MAP.md` — internal build-history walkthrough not useful
+  to library users; the same information lives in `git log`.
+- `assets/README.md` — placeholder doc removed; image files will land
+  here directly when captured.
 
 ## [0.1.0] — Initial release
 

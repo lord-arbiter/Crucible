@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+title: "Crucible: Multi-axis VLM-judged data curation for robot demonstrations"
+message: "If you use Crucible in research or production, please cite it as below."
+type: software
+authors:
+  - given-names: Chakradhari
+    email: chakradharihomeshwarashiva@gmail.com
+repository-code: "https://github.com/lord-arbiter/Crucible"
+url: "https://github.com/lord-arbiter/Crucible"
+abstract: >
+  Crucible is an open-source data curation studio for robot teleoperation
+  demonstrations. It runs five Qwen3-VL specialist critic agents (visual
+  quality, kinematic quality, task success, strategy, safety) on every
+  episode of a HuggingFace LeRobot dataset, fuses their structured outputs
+  into a final KEEP / POLISH / REJECT verdict with rationale and timestamp
+  evidence, and lets curators push the filtered subset back to the Hub.
+  Backend-agnostic — runs against any OpenAI-compatible Qwen3-VL endpoint
+  (self-hosted vLLM on AMD or NVIDIA GPUs, or hosted APIs).
+keywords:
+  - robotics
+  - imitation learning
+  - vision language models
+  - data curation
+  - llm as judge
+  - lerobot
+  - qwen
+license: MIT
+version: 0.1.0
+date-released: "2026-05-10"
