@@ -1,43 +1,65 @@
-# Crucible GPU box — MI300X / ROCm 7.2 / vLLM + FastAPI orchestrator
+# Crucible GPU box — MI300X / ROCm / vLLM serving Qwen3-VL + FastAPI orchestrator
 #
-# Build from the AMD-published ROCm vLLM base image. If that tag drifts,
-# substitute the latest from https://hub.docker.com/r/rocm/vllm/tags
-ARG BASE=rocm/vllm:rocm7.2_ubuntu22.04_vllm
+# AMD's modern Docker images for vLLM on Instinct GPUs ship under
+# rocm/vllm-dev or vllm/vllm-openai-rocm. The legacy rocm/vllm:rocm7.2_*
+# tag does NOT exist. Use one of:
+#   - rocm/vllm-dev:nightly_main_20260509   (AMD-tuned, MI300X-optimised)
+#   - vllm/vllm-openai-rocm:latest          (upstream vLLM ROCm image)
+#
+# Override at build time:
+#   docker build -f docker/Dockerfile.gpu --build-arg BASE=vllm/vllm-openai-rocm:latest -t crucible:gpu .
+ARG BASE=rocm/vllm-dev:nightly_main_20260509
 FROM ${BASE}
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
+    \
+    # AMD MI300X tuning — keep these in sync with entrypoint.sh.
     HSA_FORCE_FINE_GRAIN_PCIE=1 \
     HIP_VISIBLE_DEVICES=0 \
+    VLLM_USE_V1=1 \
+    VLLM_ROCM_USE_AITER=1 \
+    VLLM_V1_USE_PREFILL_DECODE_ATTENTION=1 \
+    SAFETENSORS_FAST_GPU=1 \
+    \
+    # HuggingFace download accelerator.
     HF_HUB_ENABLE_HF_TRANSFER=1 \
+    \
+    # Crucible orchestrator config.
     CRUCIBLE_VLM_ENDPOINT=http://localhost:8001/v1 \
     CRUCIBLE_VLM_MODEL=Qwen/Qwen3-VL-32B-Instruct \
+    CRUCIBLE_VLM_SERVED_NAME=crucible-vlm \
     CRUCIBLE_API_HOST=0.0.0.0 \
     CRUCIBLE_API_PORT=8000
 
 WORKDIR /workspace/crucible
 
-# System packages for video decoding + git for any from-source installs
+# System packages: AV1 decoders for LeRobot v3 video, plus init/tooling.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ffmpeg \
         libavcodec-extra \
+        libdav1d-dev \
+        libaom-dev \
         git \
         curl \
         ca-certificates \
         tini \
     && rm -rf /var/lib/apt/lists/*
 
-# Python deps (ROCm vLLM image already has torch + vllm)
-COPY pyproject.toml ./
-RUN pip install --no-cache-dir \
+# IMPORTANT: do NOT reinstall torch — the base image's ROCm-tuned torch wheel
+# is hand-built for MI300X. We pin transformers >= 4.57 (Qwen3-VL native
+# support) and add xgrammar for reliable JSON-schema guided decoding.
+RUN pip install --no-cache-dir --no-deps \
+        "vllm>=0.16.0" \
+    && pip install --no-cache-dir \
+        "transformers>=4.57.0" \
+        "xgrammar>=0.1.18" \
         "openai>=1.50" \
-        "transformers>=4.46" \
         "huggingface_hub[hf_transfer]>=0.26" \
         "datasets>=3.1" \
         "pyarrow>=15" \
         "pandas>=2.2" \
-        "numpy>=1.26" \
         "pillow>=10.4" \
         "av>=12.3" \
         "fastapi>=0.115" \
@@ -52,7 +74,6 @@ COPY data/ ./data/
 
 EXPOSE 8000 8001
 
-# vLLM in the background, FastAPI in the foreground; tini reaps zombies.
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["tini", "--", "/entrypoint.sh"]
