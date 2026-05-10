@@ -1,0 +1,5 @@
+gradio>=4.44
+pandas>=2.2
+plotly>=5.24
+requests>=2.32
+sseclient-py>=1.8
