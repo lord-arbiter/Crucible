@@ -58,14 +58,15 @@ async def main() -> None:
     print("Telemetry digest:\n" + bundle.telemetry_digest)
 
     try:
-        from openai import AsyncOpenAI
-    except ImportError:
-        print("openai not installed; skipping critic call.")
-        return
+        from src.critics import _get_transport, _select_transport_kind
+    except ImportError as exc:
+        print(f"Failed to import critic transport: {exc}", file=sys.stderr)
+        sys.exit(1)
 
-    client = AsyncOpenAI(base_url=cfg.vlm_endpoint, api_key=cfg.vlm_api_key)
-    print(f"\n=== Running {args.critic} critic against {cfg.vlm_endpoint} ===")
-    out = await run_critic(args.critic, bundle, cfg, client)
+    kind = _select_transport_kind(cfg)
+    print(f"\n=== Running {args.critic} critic via transport={kind} model={cfg.vlm_model} ===")
+    transport = _get_transport(cfg)
+    out = await run_critic(args.critic, bundle, cfg, transport)
     print(json.dumps(out, indent=2, default=str))
 
 

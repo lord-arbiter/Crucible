@@ -73,6 +73,13 @@ gpu = [
     "torch",
     "xgrammar>=0.1.18",
 ]
+# Adds LiteLLM so Crucible can natively talk to 100+ providers (Anthropic
+# Claude, AWS Bedrock, Vertex AI, Cohere, Replicate, Groq, Ollama, etc.)
+# without an external translation proxy. The default install supports any
+# OpenAI-compatible endpoint already; this extra unlocks the rest.
+universal = [
+    "litellm>=1.50,<2",
+]
 dev = [
     "ruff>=0.6",
     "pytest>=8.3",

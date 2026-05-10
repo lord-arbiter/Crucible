@@ -100,7 +100,7 @@ def fallback_aggregate(critic_results: dict[str, dict]) -> dict:
 async def aggregate(
     critic_results: dict[str, dict],
     cfg: CrucibleConfig,
-    client,  # AsyncOpenAI
+    transport,  # TransportFn from src.critics
 ) -> dict:
     system = load_aggregator_prompt()
     user_text = (
@@ -111,7 +111,7 @@ async def aggregate(
     )
     try:
         raw = await _chat_with_retries(
-            client,
+            transport,
             cfg,
             system=system,
             user_content=user_text,

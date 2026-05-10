@@ -51,6 +51,7 @@ RUN pip install --no-cache-dir --upgrade \
         "transformers>=4.57.0" \
         "xgrammar>=0.1.18" \
         "openai>=1.50" \
+        "litellm>=1.50,<2" \
         "huggingface_hub[hf_transfer]>=0.26" \
         "datasets>=3.1" \
         "pyarrow>=15" \

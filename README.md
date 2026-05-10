@@ -14,7 +14,7 @@
 
 Crucible reads a HuggingFace LeRobot dataset and runs five specialist VLM critic agents on every episode — visual quality, kinematic quality, task success, **strategy**, **safety** — then fuses their outputs into a single `KEEP / POLISH / REJECT` verdict with rationale and timestamp evidence. Drag a threshold and push the curated subset back to the Hub in one click.
 
-The critics are model-agnostic. Crucible is built around the OpenAI chat-completions API surface and works with any vision-language model exposed through it: open-weight (Qwen3-VL, InternVL, Llama-3.2-Vision), proprietary (GPT-4o, Claude Sonnet, Gemini 2.5 Pro), self-hosted (vLLM on AMD or NVIDIA), or hosted (Hyperbolic, Together AI, DashScope, OpenAI, Anthropic, Google). The barrier to "try it" is a free API key, not a $32k GPU.
+The critics are model-agnostic. Drop in **any API key from any provider** — Crucible supports the OpenAI chat-completions API surface natively for self-hosted vLLM / Hyperbolic / Together AI / DashScope / OpenAI / Gemini's OpenAI-compat endpoint, and ships a [LiteLLM](https://github.com/BerriAI/litellm)-powered universal gateway as an opt-in extra (`pip install 'crucible-curation[universal]'`) for everything else: Anthropic native, AWS Bedrock, Google Vertex AI, Cohere, Replicate, Groq, Mistral, OpenRouter, xAI, and ~100 more. See [docs/recipes/any-provider-litellm.md](docs/recipes/any-provider-litellm.md).
 
 ## Why this exists
 
@@ -45,17 +45,22 @@ cd Crucible
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -e .
 
-# 2. Point at your endpoint (any of these work)
-export CRUCIBLE_VLM_ENDPOINT=https://api.openai.com/v1            # OpenAI GPT-4o
-export CRUCIBLE_VLM_MODEL=gpt-4o
-# or:
-export CRUCIBLE_VLM_ENDPOINT=https://api.hyperbolic.xyz/v1        # Qwen3-VL on Hyperbolic
-export CRUCIBLE_VLM_MODEL=Qwen/Qwen3-VL-72B-Instruct
-# or:
-export CRUCIBLE_VLM_ENDPOINT=https://generativelanguage.googleapis.com/v1beta/openai
-export CRUCIBLE_VLM_MODEL=gemini-2.5-flash
-# in all cases:
-export CRUCIBLE_VLM_API_KEY=<your-key>
+# 2. Point at any provider you have a key for
+# Pick ONE block below — Crucible auto-detects which transport to use.
+
+# (a) OpenAI direct (no endpoint URL needed — known model)
+export CRUCIBLE_VLM_MODEL=gpt-4o-mini
+export CRUCIBLE_VLM_API_KEY=sk-...
+
+# (b) LiteLLM universal gateway (Anthropic, Bedrock, Vertex, ...)
+# Requires `pip install 'crucible-curation[universal]'`. No endpoint URL.
+# export CRUCIBLE_VLM_MODEL=anthropic/claude-sonnet-4-5
+# export CRUCIBLE_VLM_API_KEY=sk-ant-...
+
+# (c) OpenAI-compatible endpoint (Hyperbolic, Together, DashScope, self-hosted vLLM)
+# export CRUCIBLE_VLM_ENDPOINT=https://api.hyperbolic.xyz/v1
+# export CRUCIBLE_VLM_MODEL=Qwen/Qwen3-VL-72B-Instruct
+# export CRUCIBLE_VLM_API_KEY=<your-key>
 
 # 3. Score one episode end-to-end
 python scripts/one_shot_test.py \
@@ -77,20 +82,29 @@ python scripts/io_smoke.py --repo lerobot/aloha_static_cups_open --episodes 2
 
 ## Supported models
 
-Any vision-language model exposed through an OpenAI-compatible chat-completions endpoint works. The five critic prompts are written for the rubric, not for a specific tokenizer or chat template.
+Any vision-language model reachable through a chat-completions API works. Crucible has three transports and picks the right one automatically:
 
-| Model | Provider | Notes |
+| Transport | When it's used | Setup |
 |---|---|---|
-| **Qwen3-VL** (2B / 8B / 32B / 72B / 235B) | self-hosted (vLLM); Hyperbolic; Together AI; DashScope | Fastest open-weight; auto-detected (we append `/no_think` to suppress thinking-mode preamble) |
-| **GPT-4o / GPT-4o-mini** | OpenAI | Best JSON-mode reliability; recommended starting point |
-| **Claude Sonnet 4.5 / Opus 4.5** | Anthropic via OpenAI-compat proxy (LiteLLM) | Strongest reasoning on the strategy + safety axes in informal testing |
-| **Gemini 2.5 Pro / Flash** | Google AI Studio (OpenAI-compat) | Cheapest hosted multimodal; native long context |
-| **Llama-3.2-Vision** (11B / 90B) | self-hosted (vLLM) | Open-weight alternative |
-| **InternVL** (2B / 8B / 26B / 78B) | self-hosted (vLLM) | Strong open-weight |
+| **OpenAI-compat** | `CRUCIBLE_VLM_ENDPOINT` is set | endpoint URL + model id + API key |
+| **OpenAI direct** | `CRUCIBLE_VLM_MODEL` is `gpt-*` / `o1` / `o3` / `o4` and no endpoint set | model id + `OPENAI_API_KEY` |
+| **LiteLLM universal** | model id has a provider prefix like `anthropic/`, `bedrock/`, `vertex_ai/` | `pip install 'crucible-curation[universal]'` + provider creds |
+
+| Model family | Provider | Best transport | Notes |
+|---|---|---|---|
+| **Qwen3-VL** (2B / 8B / 32B / 72B / 235B) | self-hosted vLLM, Hyperbolic, Together AI, DashScope | OpenAI-compat | Auto-appends `/no_think` to suppress thinking-mode preamble |
+| **GPT-4o / GPT-4o-mini / o1** | OpenAI | OpenAI direct | Best JSON-mode reliability; recommended starting point |
+| **Claude Sonnet 4.5 / Opus 4.5** | Anthropic | LiteLLM (`anthropic/...`) | Strongest reasoning on strategy + safety axes |
+| **Gemini 2.5 Pro / Flash** | Google AI Studio | OpenAI-compat OR LiteLLM (`gemini/...`) | Cheapest hosted multimodal |
+| **Claude / Llama / Nova on Bedrock** | AWS Bedrock | LiteLLM (`bedrock/...`) | Uses standard AWS credential chain |
+| **Gemini / PaLM on Vertex** | Google Vertex AI | LiteLLM (`vertex_ai/...`) | Uses gcloud ADC |
+| **Llama-3.2-Vision** (11B / 90B) | self-hosted vLLM, Groq, Fireworks | OpenAI-compat or LiteLLM | Open-weight alternative |
+| **InternVL** (2B / 8B / 26B / 78B) | self-hosted vLLM | OpenAI-compat | Strong open-weight |
+| **Cohere / Mistral / Replicate / Groq / xAI** | their native APIs | LiteLLM (`<provider>/...`) | One env var change |
 
 Crucible's three-tier output mode (`json_schema` → `json_object` → unconstrained, with regex JSON salvage) covers the variation in structured-output support across these models. You don't need to pick a model that supports `json_schema` specifically.
 
-Want a model not listed? Open an [issue](https://github.com/lord-arbiter/Crucible/issues/new?template=feature_request.md) — most additions are documentation-only.
+Want a provider not listed? Open an [issue](https://github.com/lord-arbiter/Crucible/issues/new?template=feature_request.md) — LiteLLM probably already supports it; usually a one-line addition to the prefix list.
 
 ## Self-host on a GPU box
 

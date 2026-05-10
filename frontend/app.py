@@ -292,9 +292,17 @@ GitHub: <https://github.com/lord-arbiter/Crucible> · Recipes: <https://github.c
 
     with gr.Accordion("Custom VLM endpoint (optional)", open=False):
         gr.Markdown(
-            """Override the orchestrator's default VLM endpoint per request. Leave blank
-to use the server-side defaults set via `CRUCIBLE_VLM_*` env vars. Useful when
-running this Space against your own hosted Qwen3-VL provider."""
+            """Override the orchestrator's default model per request. Leave blank to
+use the server-side defaults.
+
+- **OpenAI-compatible**: set the endpoint URL + model id + API key
+  (Hyperbolic, Together, DashScope, self-hosted vLLM, ...).
+- **OpenAI direct**: leave endpoint blank, set model id like `gpt-4o-mini` and the API key.
+- **LiteLLM universal** (orchestrator must have `[universal]` extra installed):
+  leave endpoint blank, set model id with a provider prefix —
+  `anthropic/claude-sonnet-4-5`, `bedrock/anthropic.claude-3-5-sonnet`,
+  `gemini/gemini-2.5-flash`, `vertex_ai/gemini-2.5-pro`, `cohere/command-a`,
+  `groq/llama-3.2-90b-vision-preview`, etc."""
         )
         with gr.Row():
             vlm_endpoint = gr.Textbox(

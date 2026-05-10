@@ -1,13 +1,23 @@
-# Recipe: hosted-API quickstart (any OpenAI-compatible Qwen3-VL provider)
+# Recipe: hosted-API quickstart (any OpenAI-compatible provider)
 
 ## When to use
 
 You don't have a GPU and don't want to set one up. You want to try
-Crucible end-to-end in 5 minutes against a hosted Qwen3-VL endpoint.
+Crucible end-to-end in 5 minutes against any hosted vision-language
+model.
 
-This is the easiest path. Provider-specific recipes for
-[Hyperbolic](./hyperbolic.md), [Together AI](./together-ai.md), and
-[DashScope](./dashscope.md) follow the same shape.
+> **Even easier path: the universal LiteLLM gateway.** If you want
+> "drop in any provider's API key, it just works" — including Anthropic
+> Claude, AWS Bedrock, Google Vertex AI, Cohere, Replicate, and ~100
+> more — see [any-provider-litellm.md](./any-provider-litellm.md). It
+> needs `pip install 'crucible-curation[universal]'`. Docker images
+> bake the LiteLLM extra in by default.
+
+This recipe is the bare-OpenAI-compat path. Provider-specific recipes
+for [OpenAI](./openai-gpt4o.md), [Hyperbolic](./hyperbolic.md),
+[Together AI](./together-ai.md), [DashScope](./dashscope.md), and
+[Google Gemini (OpenAI-compat)](./google-gemini.md) follow the same
+shape.
 
 ## What you need
 

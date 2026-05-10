@@ -7,6 +7,17 @@ uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- **Universal multi-provider gateway via LiteLLM.** Drop in any API key
+  from any provider. Crucible now ships three auto-selected transports:
+  OpenAI-compat (current default, when an endpoint URL is set), OpenAI
+  direct (when the model id is `gpt-*` / `o1` / `o3` / `o4`), and
+  LiteLLM universal (when the model id has a provider prefix like
+  `anthropic/`, `bedrock/`, `vertex_ai/`, `cohere/`, `groq/`,
+  `replicate/`, `xai/`, etc. — 27 prefixes, ~100 providers).
+  Pip install: `pip install 'crucible-curation[universal]'` for the
+  LiteLLM extra. Docker images bake LiteLLM in by default. New recipe
+  `docs/recipes/any-provider-litellm.md` documents the full set of
+  prefixes and per-provider env-var quickstarts.
 - **Model-agnostic story.** Crucible's positioning is no longer
   Qwen3-VL-first; the project is built around the OpenAI chat-completions
   API surface and works with any vision-language model exposed through

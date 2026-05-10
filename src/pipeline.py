@@ -85,7 +85,10 @@ async def score_dataset(
     if AsyncOpenAI is None:
         raise RuntimeError("openai package missing; install dependencies before scoring")
 
-    client = AsyncOpenAI(base_url=cfg.vlm_endpoint, api_key=cfg.vlm_api_key)
+    # Resolve which backend transport this run uses (OpenAI-compat,
+    # LiteLLM, or OpenAI direct) — picked from cfg.vlm_endpoint + cfg.vlm_model.
+    from .critics import _get_transport
+    transport = _get_transport(cfg)
     results: list[dict] = []
     bundles = stream_episodes(
         repo_id,
@@ -99,11 +102,11 @@ async def score_dataset(
         ep_started = time.time()
         try:
             critic_results = await asyncio.wait_for(
-                run_all_critics(bundle, cfg, client),
+                run_all_critics(bundle, cfg, transport),
                 timeout=cfg.timeout_per_episode_s,
             )
             verdict = await asyncio.wait_for(
-                aggregate(critic_results, cfg, client),
+                aggregate(critic_results, cfg, transport),
                 timeout=cfg.timeout_per_episode_s,
             )
         except TimeoutError:

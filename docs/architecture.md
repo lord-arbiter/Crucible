@@ -27,12 +27,16 @@
 │  └─────────────────────┬──────────────────────────────────┘  │
 │                        │ json_schema-constrained requests    │
 │  ┌─────────────────────┴──────────────────────────────────┐  │
-│  │  Any OpenAI-compatible Qwen3-VL endpoint:              │  │
-│  │   - vLLM serving Qwen3-VL on local NVIDIA / AMD GPU    │  │
-│  │   - Hyperbolic, Together AI, DashScope, etc. (hosted)  │  │
-│  │   - SageMaker JumpStart Qwen3-VL endpoint              │  │
+│  │  Transport selector (src/critics.py:_get_transport):   │  │
+│  │   1. OpenAI-compat   when CRUCIBLE_VLM_ENDPOINT is set │  │
+│  │      (self-hosted vLLM, Hyperbolic, Together,          │  │
+│  │       DashScope, OpenAI, Gemini OpenAI-compat, ...)    │  │
+│  │   2. OpenAI direct   when model id is gpt-*/o1/o3/o4   │  │
+│  │   3. LiteLLM         when model id has provider prefix │  │
+│  │      (anthropic/, bedrock/, vertex_ai/, cohere/,       │  │
+│  │       groq/, replicate/, xai/, ... ~100 providers)     │  │
 │  │  Five specialist critics (parallel via asyncio.gather) │  │
-│  │  + one aggregator share the same endpoint.             │  │
+│  │  + one aggregator share the selected transport.        │  │
 │  │  json_schema → json_object → unconstrained fallback.   │  │
 │  └────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────┘
