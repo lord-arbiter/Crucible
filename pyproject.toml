@@ -3,13 +3,45 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "crucible"
+name = "crucible-curation"
 version = "0.1.0"
-description = "A VLM-judged data curation studio for robot demonstrations."
+description = "Multi-axis VLM-judged data curation studio for robot demonstrations."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "Chakradhari" }]
+authors = [
+    { name = "Chakradhari", email = "chakradharihomeshwarashiva@gmail.com" },
+]
+maintainers = [
+    { name = "Chakradhari", email = "chakradharihomeshwarashiva@gmail.com" },
+]
+keywords = [
+    "robotics",
+    "lerobot",
+    "vlm",
+    "qwen",
+    "llm-as-judge",
+    "dataset-curation",
+    "imitation-learning",
+    "robot-learning",
+    "huggingface",
+    "demonstration-curation",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+    "Topic :: Software Development :: Libraries",
+]
 dependencies = [
     "openai>=1.50",
     "transformers>=4.46",
@@ -37,17 +69,35 @@ dependencies = [
 gpu = [
     "vllm",
     "torch",
+    "xgrammar>=0.1.18",
 ]
 dev = [
     "ruff>=0.6",
     "pytest>=8.3",
+    "build>=1.2",
 ]
+notebooks = [
+    "jupyter>=1.0",
+    "ipykernel>=6.29",
+    "matplotlib>=3.8",
+]
+
+[project.urls]
+Homepage = "https://github.com/lord-arbiter/Crucible"
+Documentation = "https://github.com/lord-arbiter/Crucible#readme"
+Repository = "https://github.com/lord-arbiter/Crucible"
+Issues = "https://github.com/lord-arbiter/Crucible/issues"
+Changelog = "https://github.com/lord-arbiter/Crucible/blob/main/CHANGELOG.md"
+Roadmap = "https://github.com/lord-arbiter/Crucible/blob/main/ROADMAP.md"
 
 [project.scripts]
 crucible-api = "src.api:main"
 
 [tool.setuptools]
 packages = ["src", "src.prompts"]
+
+[tool.setuptools.package-data]
+"src.prompts" = ["*.txt"]
 
 [tool.ruff]
 line-length = 110

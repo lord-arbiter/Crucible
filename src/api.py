@@ -45,6 +45,12 @@ class ScoreRequest(BaseModel):
     n_episodes: int = Field(default=DEFAULT_CONFIG.max_episodes_per_run, ge=1, le=200)
     use_cache: bool = True
     frames_per_episode: int | None = None
+    # Optional per-request VLM endpoint override (lets the OSS demo Space
+    # target any user-supplied OpenAI-compatible Qwen3-VL endpoint without
+    # restarting the orchestrator).
+    vlm_endpoint: str | None = None
+    vlm_model: str | None = None
+    vlm_api_key: str | None = None
 
 
 class PushRequest(BaseModel):
@@ -85,6 +91,12 @@ async def score_endpoint(req: ScoreRequest) -> dict:
     cfg.max_episodes_per_run = req.n_episodes
     if req.frames_per_episode:
         cfg.frames_per_episode = int(req.frames_per_episode)
+    if req.vlm_endpoint:
+        cfg.vlm_endpoint = req.vlm_endpoint
+    if req.vlm_model:
+        cfg.vlm_model = req.vlm_model
+    if req.vlm_api_key:
+        cfg.vlm_api_key = req.vlm_api_key
 
     JOBS[job_id] = {
         "queue": queue,

@@ -82,16 +82,28 @@ def _score_histogram(df: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def _kick_off(repo_id: str, n_episodes: int, use_cache: bool) -> tuple[str, str]:
+def _kick_off(
+    repo_id: str,
+    n_episodes: int,
+    use_cache: bool,
+    vlm_endpoint: str,
+    vlm_model: str,
+    vlm_api_key: str,
+) -> tuple[str, str]:
     if use_cache:
         cached = _load_precached(repo_id)
         if cached:
             return f"precache::{repo_id}", f"Loaded {len(cached)} precached episodes from disk."
-    r = requests.post(
-        f"{API_BASE}/score_dataset",
-        json={"repo_id": repo_id, "n_episodes": int(n_episodes), "use_cache": use_cache},
-        timeout=15,
-    )
+    body: dict = {"repo_id": repo_id, "n_episodes": int(n_episodes), "use_cache": use_cache}
+    # Forward any UI-specified VLM endpoint overrides so the same orchestrator
+    # can serve different users without a restart.
+    if vlm_endpoint and vlm_endpoint.strip():
+        body["vlm_endpoint"] = vlm_endpoint.strip()
+    if vlm_model and vlm_model.strip():
+        body["vlm_model"] = vlm_model.strip()
+    if vlm_api_key and vlm_api_key.strip():
+        body["vlm_api_key"] = vlm_api_key.strip()
+    r = requests.post(f"{API_BASE}/score_dataset", json=body, timeout=15)
     r.raise_for_status()
     payload = r.json()
     return payload["job_id"], f"Started {payload['job_id']} on {repo_id} ({n_episodes} episodes)"
@@ -257,13 +269,14 @@ def _push_handler(
 with gr.Blocks(title="Crucible — Robot Demo Curator", theme=gr.themes.Soft()) as demo:
     gr.Markdown(
         """# Crucible
-*A VLM-judged data curation studio for robot demonstrations.*
+*A multi-axis VLM-judged data curation studio for robot demonstrations.*
 
-Crucible reads a HuggingFace LeRobot dataset, runs five Qwen3-VL specialist
-critics on every episode (visual, kinematic, task success, strategy, safety),
-and lets you filter and re-publish the curated subset to the Hub.
+Paste a HuggingFace LeRobot dataset URL. Crucible runs five Qwen3-VL critics
+(visual, kinematic, task success, strategy, safety) on every episode, fuses
+their outputs into a final KEEP / POLISH / REJECT verdict with rationale and
+timestamp evidence, and lets you push the curated subset back to the Hub.
 
-Built solo on AMD Developer Cloud + Qwen3-VL for the AMD Developer Hackathon 2026.
+GitHub: <https://github.com/lord-arbiter/Crucible> · Recipes: <https://github.com/lord-arbiter/Crucible/tree/main/docs/recipes>
 """
     )
 
@@ -276,6 +289,29 @@ Built solo on AMD Developer Cloud + Qwen3-VL for the AMD Developer Hackathon 202
         )
         n_eps = gr.Slider(label="Episodes to score", minimum=1, maximum=100, value=25, step=1)
         use_cache = gr.Checkbox(label="Use precache when available", value=True)
+
+    with gr.Accordion("Custom VLM endpoint (optional)", open=False):
+        gr.Markdown(
+            """Override the orchestrator's default VLM endpoint per request. Leave blank
+to use the server-side defaults set via `CRUCIBLE_VLM_*` env vars. Useful when
+running this Space against your own hosted Qwen3-VL provider."""
+        )
+        with gr.Row():
+            vlm_endpoint = gr.Textbox(
+                label="VLM endpoint (OpenAI-compatible)",
+                placeholder="https://api.your-provider.com/v1",
+                value="",
+            )
+            vlm_model = gr.Textbox(
+                label="Model id",
+                placeholder="Qwen/Qwen3-VL-32B-Instruct",
+                value="",
+            )
+            vlm_api_key = gr.Textbox(
+                label="API key",
+                type="password",
+                value="",
+            )
 
     with gr.Row():
         go_btn = gr.Button("Score dataset", variant="primary")
@@ -319,7 +355,7 @@ Built solo on AMD Developer Cloud + Qwen3-VL for the AMD Developer Hackathon 202
 
     go_btn.click(
         _kick_off,
-        inputs=[repo_id, n_eps, use_cache],
+        inputs=[repo_id, n_eps, use_cache, vlm_endpoint, vlm_model, vlm_api_key],
         outputs=[job_state, status],
     ).then(
         _stream_results,
@@ -343,8 +379,10 @@ Built solo on AMD Developer Cloud + Qwen3-VL for the AMD Developer Hackathon 202
 
     gr.Markdown(
         """---
-*Architecture:* Gradio (HF Spaces, CPU) → FastAPI orchestrator on AMD MI300X → vLLM serving Qwen3-VL-32B.
-Five specialist critics + one aggregator share the same model and 192GB of HBM3.
+*Architecture:* Gradio (HF Spaces, CPU) → FastAPI orchestrator → any
+OpenAI-compatible Qwen3-VL endpoint. Five specialist critics + one aggregator
+share the same backend. See [docs/architecture.md](https://github.com/lord-arbiter/Crucible/blob/main/docs/architecture.md)
+for the full diagram.
 """
     )
 
