@@ -5,13 +5,16 @@ doc surveys the realistic options across cost, control, and quality
 tiers. For provisioning details see the per-option recipes in
 [`docs/recipes/`](recipes/).
 
-## Hosted Qwen3-VL APIs (no GPU to manage)
+## Hosted multimodal APIs (no GPU to manage)
 
-| Provider | Model coverage | Pricing tier | Free trial | Recipe |
-|---|---|---|---|---|
-| Hyperbolic | 72B-Instruct, 32B variants | ~$0.20 / M input tok | Small starting credit | [hyperbolic.md](recipes/hyperbolic.md) |
-| Together AI | Full Qwen3-VL family | ~$0.40 / M input tok | $5–25 starting credit | [together-ai.md](recipes/together-ai.md) |
-| DashScope (Alibaba) | qwen3-vl-plus / max (official) | Pay-as-you-go, regional | ~1M tokens free trial | [dashscope.md](recipes/dashscope.md) |
+| Provider | Models | Pricing (per M input tok) | Recipe |
+|---|---|---|---|
+| OpenAI | GPT-4o, GPT-4o-mini | ~$2.50 / ~$0.15 | [openai-gpt4o.md](recipes/openai-gpt4o.md) |
+| Anthropic (via LiteLLM proxy) | Claude Sonnet, Opus | ~$3 / ~$15 | [anthropic-claude.md](recipes/anthropic-claude.md) |
+| Google AI Studio | Gemini 2.5 Flash, Pro | ~$0.075 / ~$1.25 | [google-gemini.md](recipes/google-gemini.md) |
+| Hyperbolic | Qwen3-VL 72B / 32B | ~$0.20 | [hyperbolic.md](recipes/hyperbolic.md) |
+| Together AI | Qwen3-VL family | ~$0.40 | [together-ai.md](recipes/together-ai.md) |
+| DashScope (Alibaba) | qwen3-vl-plus / max (official) | Pay-as-you-go | [dashscope.md](recipes/dashscope.md) |
 
 When to pick a hosted API:
 

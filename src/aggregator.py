@@ -11,7 +11,7 @@ import logging
 from typing import Any
 
 from .config import CrucibleConfig
-from .critics import NO_THINK_SUFFIX, _chat_with_retries, _extract_json_loose, load_aggregator_prompt
+from .critics import _chat_with_retries, _extract_json_loose, _user_message_suffix, load_aggregator_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +107,7 @@ async def aggregate(
         "Critic outputs:\n"
         f"{json.dumps(critic_results, indent=2, default=str)}\n\n"
         "Produce the final verdict JSON."
-        f"{NO_THINK_SUFFIX}"
+        f"{_user_message_suffix(cfg)}"
     )
     try:
         raw = await _chat_with_retries(

@@ -7,6 +7,16 @@ uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- **Model-agnostic story.** Crucible's positioning is no longer
+  Qwen3-VL-first; the project is built around the OpenAI chat-completions
+  API surface and works with any vision-language model exposed through
+  it (Qwen3-VL, GPT-4o, Claude, Gemini, Llama-3.2-Vision, InternVL).
+  README, CITATION.cff, pyproject.toml keywords, and config docstring
+  updated to reflect this. The Qwen-specific `/no_think` token is now
+  auto-applied only when the configured model id contains `qwen`.
+- New recipes for non-Qwen backends: `docs/recipes/openai-gpt4o.md`,
+  `docs/recipes/anthropic-claude.md` (via LiteLLM proxy),
+  `docs/recipes/google-gemini.md`.
 - Multi-backend deployment recipes under `docs/recipes/` (AWS EC2, AWS
   SageMaker, AMD MI300X, Hyperbolic, Together AI, DashScope, local Mac).
 - `docker/Dockerfile.cuda` for NVIDIA GPUs (A10G, L40S, H100, A100).

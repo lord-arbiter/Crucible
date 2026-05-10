@@ -1,17 +1,23 @@
 """Runtime configuration for Crucible.
 
-Every knob is overridable via a ``CRUCIBLE_*`` environment variable. Common
-backend configurations:
+Every knob is overridable via a ``CRUCIBLE_*`` environment variable.
+Crucible is **model-agnostic** — any vision-language model exposed through
+an OpenAI-compatible chat-completions endpoint works. Examples below;
+see ``docs/recipes/`` for end-to-end setup per backend.
 
-| Backend | CRUCIBLE_VLM_ENDPOINT | CRUCIBLE_VLM_MODEL | CRUCIBLE_VLM_API_KEY |
-|---|---|---|---|
-| Self-hosted vLLM (local Docker) | ``http://localhost:8001/v1`` | ``crucible-vlm`` | ``EMPTY`` |
-| Hyperbolic | ``https://api.hyperbolic.xyz/v1`` | ``Qwen/Qwen3-VL-72B-Instruct`` | ``<key>`` |
-| Together AI | ``https://api.together.xyz/v1`` | ``Qwen/Qwen3-VL-32B-Instruct`` | ``<key>`` |
-| DashScope (Alibaba intl) | ``https://dashscope-intl.aliyuncs.com/compatible-mode/v1`` | ``qwen3-vl-plus`` | ``<key>`` |
-| Local Mac MLX | ``http://localhost:8001/v1`` | ``mlx-community/Qwen3-VL-2B-Instruct-4bit`` | ``EMPTY`` |
+| Backend / model | CRUCIBLE_VLM_ENDPOINT | CRUCIBLE_VLM_MODEL |
+|---|---|---|
+| OpenAI GPT-4o | ``https://api.openai.com/v1`` | ``gpt-4o`` |
+| Anthropic Claude (via LiteLLM proxy) | ``http://localhost:4000/v1`` | ``claude-sonnet-4-5`` |
+| Google Gemini (OpenAI compat) | ``https://generativelanguage.googleapis.com/v1beta/openai`` | ``gemini-2.5-flash`` |
+| Self-hosted vLLM (local Docker) | ``http://localhost:8001/v1`` | ``crucible-vlm`` |
+| Hyperbolic Qwen3-VL | ``https://api.hyperbolic.xyz/v1`` | ``Qwen/Qwen3-VL-72B-Instruct`` |
+| Together AI Qwen3-VL | ``https://api.together.xyz/v1`` | ``Qwen/Qwen3-VL-32B-Instruct`` |
+| DashScope (Alibaba intl) | ``https://dashscope-intl.aliyuncs.com/compatible-mode/v1`` | ``qwen3-vl-plus`` |
+| Local Mac MLX | ``http://localhost:8001/v1`` | ``mlx-community/Qwen3-VL-2B-Instruct-4bit`` |
 
-See ``docs/recipes/`` for end-to-end setup per backend.
+For Qwen3-family models the critic auto-appends a ``/no_think`` suffix to
+suppress the chain-of-thought preamble; other model families are unaffected.
 """
 from __future__ import annotations
 

@@ -8,12 +8,17 @@ recipe that matches your infrastructure and budget.
 
 | You want | Pick |
 |---|---|
-| Quickest possible try (5 min, no GPU) | [Hosted API quickstart](recipes/hosted-api-quickstart.md) → [Hyperbolic](recipes/hyperbolic.md) / [Together AI](recipes/together-ai.md) / [DashScope](recipes/dashscope.md) |
+| Most reliable JSON output, easy setup | [OpenAI GPT-4o](recipes/openai-gpt4o.md) |
+| Cheapest hosted, largest context | [Google Gemini](recipes/google-gemini.md) |
+| Strongest strategy / safety rationale | [Anthropic Claude (via LiteLLM)](recipes/anthropic-claude.md) |
+| Cheapest open-weight hosted | [Hyperbolic Qwen3-VL](recipes/hyperbolic.md) |
+| Other hosted Qwen3-VL providers | [Together AI](recipes/together-ai.md) / [DashScope](recipes/dashscope.md) |
+| Generic guide for any OpenAI-compat host | [Hosted API quickstart](recipes/hosted-api-quickstart.md) |
 | Self-hosted on AWS, full control | [AWS EC2 g6e.xlarge](recipes/aws-ec2.md) |
 | Managed AWS deployment | [AWS SageMaker JumpStart](recipes/aws-sagemaker.md) |
 | Maximum performance, AMD hardware | [AMD MI300X](recipes/amd-mi300x.md) |
 | Develop on a Mac without cloud | [Local Mac MLX](recipes/local-mac.md) |
-| Other GPU cloud not listed here | Adapt the AWS EC2 recipe; PRs welcome |
+| Other backend not listed here | Adapt the closest recipe; PRs welcome |
 
 The [hosted-API quickstart](recipes/hosted-api-quickstart.md) is the
 recommended starting point if you've never run Crucible before. It

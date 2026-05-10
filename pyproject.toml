@@ -19,13 +19,15 @@ keywords = [
     "robotics",
     "lerobot",
     "vlm",
-    "qwen",
+    "vlm-as-judge",
     "llm-as-judge",
     "dataset-curation",
     "imitation-learning",
     "robot-learning",
     "huggingface",
     "demonstration-curation",
+    "behavioral-rubric",
+    "data-quality",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

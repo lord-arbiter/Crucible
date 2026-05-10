@@ -38,7 +38,32 @@ logger = logging.getLogger(__name__)
 
 CRITIC_NAMES = ["visual", "kinematic", "task", "strategy", "safety"]
 PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
-NO_THINK_SUFFIX = "\n\nRespond with valid JSON ONLY, no commentary, no markdown fences. /no_think"
+
+# Universal instruction appended to every user prompt. Reinforces the system
+# prompt's "Output strict JSON only" directive at the user-message boundary,
+# where many models pay closer attention.
+JSON_ONLY_INSTRUCTION = "\n\nRespond with valid JSON ONLY, no commentary, no markdown fences."
+
+# Qwen3 family (Qwen3-VL-* and Qwen3-*) defaults to a "thinking" mode that
+# emits a chain-of-thought before the JSON. The `/no_think` magic token
+# disables it. Other model families (GPT-4o, Claude, Gemini, Llama-Vision,
+# InternVL, etc.) ignore the token, so we only append it when the model
+# string suggests Qwen.
+QWEN_NO_THINK_TOKEN = " /no_think"
+
+# Backward-compatible export for callers that imported the old constant.
+NO_THINK_SUFFIX = JSON_ONLY_INSTRUCTION + QWEN_NO_THINK_TOKEN
+
+
+def _is_qwen_model(model_id: str | None) -> bool:
+    return "qwen" in (model_id or "").lower()
+
+
+def _user_message_suffix(cfg: CrucibleConfig) -> str:
+    suffix = JSON_ONLY_INSTRUCTION
+    if _is_qwen_model(cfg.vlm_model):
+        suffix += QWEN_NO_THINK_TOKEN
+    return suffix
 
 CRITIC_VERDICT_VOCAB: dict[str, list[str]] = {
     "visual": ["EXCELLENT", "ACCEPTABLE", "MARGINAL", "REJECT"],
@@ -123,7 +148,7 @@ def build_user_message(name: str, bundle: EpisodeBundle, cfg: CrucibleConfig) ->
         f"PRIMARY CAMERA: {bundle.primary_camera or 'unknown'}\n\n"
         f"TELEMETRY DIGEST:\n{bundle.telemetry_digest}\n\n"
         f"Frames sampled at timestamps (seconds): {[round(t, 2) for t in timestamps]}"
-        f"{NO_THINK_SUFFIX}"
+        f"{_user_message_suffix(cfg)}"
     )
     content: list[dict] = [{"type": "text", "text": text_block}]
     for img in frames:
